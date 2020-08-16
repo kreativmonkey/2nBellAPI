@@ -3,6 +3,7 @@
 ``"command":"db.get", "path":``
 
 | Path | Response | Description |
+| ---- | -------- | ----------- |
 | WebServer.DeviceName | [{"status":"ok","value":"2N IP Uni","is_default":false}] | get the Device Name |
 | WebServer.Language | [{"status":"ok","value":"17","is_default":true}] | |
 | WebServer.MinTlsVersion | [{"status":"ok","value":"3","is_default":false}] | |
@@ -18,6 +19,7 @@
 # State Requests
 
 | Path | Response | Description |
+| ---- | -------- | ----------- |
 | State.Time.UpTime | [{"status":"ok","value":"116292","is_default":false}] | Uptime in Seconds |
 | State.Directory.AComControl | [{"status":"ok","value":"0","is_default":true}] | |
 | State.Directory.Counters.Users | [{"status":"ok","value":"2","is_default":false}] | Count the Users in the Dictionary |
@@ -42,6 +44,7 @@
 ``"command":"db.set","path":``
 
 | Request | value | Response |
+| ---- | -------- | ----------- |
 | Backlight.BkDayBrightness | "value":"50" | |
 | Audio.NoiseDetection.Enabled | | [{"status":"invalid path"}] |
 | Audio.AdaptiveVolume.Enabled | | [{"status":"ok","value":"1","is_default":false}] |
@@ -60,8 +63,9 @@
 Example for the door switch button:
 
 ```
-https://192.168.178.131/api/log/pull?id=589609156&timeout=60&sid=2e8b3ea8-00d6-40aa-a690-274657ea85ee&_=1595154260370
+https://192.168.178.5/api/log/pull?id=589609156&timeout=60&sid=2e8b3ea8-00d6-40aa-a690-274657ea85ee&_=1595154260370
 ```
 
 | Button | ID |
+| ------ | -------- |
 | Switch | 589609156 | 
