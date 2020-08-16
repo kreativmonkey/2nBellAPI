@@ -24,48 +24,140 @@ SET_TOPICS = {
   'BacklightBrightness': 'Backlight.BkDayBrightness'
 }
 
-class Wrapper(object):
-    def __init__(self, obj):
-        self._wrapped_obj = obj
-        
-    def __getattr__(self, attr):
-        if attr in self.__dict__:
-            return getattr(self, attr)
-        return getattr(self._wrapped_obj, attr)
-
-
-
 class BellAPIWrapper():
+  
+  def __init__(
+        self,
+        password,
+        host,
+        username = DEFAULT_USERNAME,
+        port=DEFAULT_PORT,
+    ):
+    self.session = None
+    
+    self.username = username
+		self.password = password
+		self.port = port
+		self.host = host
+		# Setting the session URL to the default
+		self.sessionUrl = 'https://' + host + '/ajax?sid='
+		
+		self.login(username, password)
+    
+    self._payload = []
 	
+  def _login(self, username, password):
+		self.s = requests.Session()
+		# Workaround for self signed certificates, need a better solution!
+		self.s.verify = False
+		
+		# Payload for login
+		login_payload = '[{"command":"system.login","user":"'+username+'","password":"'+password+'"}]'
+		resp = self.sendRequest(login_payload)
+		
+		# Adding the session ID to the session URL
+		self.sessionUrl += json.loads(resp.text)[0]["sid"]
+		return resp
+  
+  def _logout(self):
+		resp = json.loads(self.s.post(self.sessionUrl, data='[{"command":"system.logout"}]').text)[0]['status']
+		# If logout is ok close the session, i need a better solution for error handling in this case.
+		if resp == 'ok':
+			self.s.close()
+		return resp
+  
 	def _send(self, payload):
         # dict in JSON umwandeln
         # dann der ganze http code
+        # return des JSON zur ausgabe oder verarbeitung
 		return
-		
-	def _set(self, pathes):
-		# Set path only for one value, it is much easier!
-		payload = [self._getQuerry('db.set', path) for path in pathes]
-		self._send(payload)
 
-	def _get(self, pathes):
-		payload = [self._getQuerry('db.get', path) for path in pathes]
-		self._send(payload)
+  def _payloadSet(self, path, value)
+    # Check if path already in the payload
+    #if any(p['path'] == path for p in self._payload):
+    #  raise ValueError('Path already in the Payload')
+    
+    # Update if path already in the payload
+    for p in self._payload:
+      if p['path'] == path:
+        p['value'] = value
+        
+        return 
+    
+    # TODO: Validate value for path
+      
+    payload["command"] = "db.set"
+    payload["path"] = SET_TOPICS[path]
+    payload["value"] = value
+    
+    return payload
+    
+  def _payloadGet(self, path)
+    # Check if path already in the payload
+    if any(p['path'] == path for p in self._payload):
+      raise ValueError('Path already in the Payload')
+    
+    payload["command"] = "db.get"
+    payload["path"] = STATE_TOPICS[path]
+    
+    return payload
+    
+  def addPayload(self, path, command="db.get", value = None):
+    # Check if the command is supported
+    if not command == "db.set" or not command == "db.get":
+      raise ValueError("Command not be found")
+    
+    
+    # Check if the path and command compares, not every path can be set ore get
+    if command == "db.get":
+      if path not in STATE_TOPICS:
+        raise ValueError(path + ' is not supported ore has no set function')
+        
+      payload = self._payloadGet(path)
+        
+		elif command == "db.set":
+      if path not in SET_TOPICS:
+        raise ValueError(path + ' is not supported ore has no get function')
+      # Check if the Value is set on command "db.set"
+      # TODO: validate the value
+      if value is None:
+        raise ValueError('Value must be set')   
+        
+      payload = self._payloadSet(path, value)
+  
+    self._payload.append(payload)
+      
+  def sendPayloads(self):
+    if not self._send(payload):
+      return 1
+  
+    # after success delet saved payload
+    del self._payload[:]
+          
+    return 0
+    
+  def setBrightness(self, value):
+    # Check the correct value
+		if not value >= 0 and not value <= 100:
+      return
+      
+    payload = []
+    payload.append(self._payloadSet("Backlight.BkDayBrightness", value)) 
+    if not self._send(payload):
+      return 1
+    
+    return 0
+      
+  def getState(self):
+    payload = []
+    for state in STATE_TOPICS:
+      payload.append(self._payloadGet(state))
 
-	def _getQuerry(self, command, path)
-		payload = {}
-		payload["command"] = command
-		payload["path"] = path
-		return payload
-	
-	
-	def set_brightness(self, value):
-		payload = {}
-		payload["path"] = "Backlight.BkDayBrightness"
-		payload["value"] = str(value)
-		self._set(payload)
-		
-
-
+    self._send(payload)
+    				
+		return 
+    
+    
 class TwoN():
 	
 	def __init__(
