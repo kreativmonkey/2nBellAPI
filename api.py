@@ -33,44 +33,69 @@ class BellAPIWrapper():
         username = DEFAULT_USERNAME,
         port=DEFAULT_PORT,
     ):
-    self.session = None
+    self._session = None
     
-    self.username = username
-		self.password = password
-		self.port = port
-		self.host = host
+    self._username = username
+		self._password = password
+		self._port = port
+		self._host = host
+    self._sessionID = ''
 		# Setting the session URL to the default
-		self.sessionUrl = 'https://' + host + '/ajax?sid='
-		
-		self.login(username, password)
+		self._sessionUrl = 'https://' + host + '/ajax?sid='
+    
+		self._login()
     
     self._payload = []
 	
-  def _login(self, username, password):
-		self.s = requests.Session()
+  def _login(self):
+    # TODO: Caching Session: https://stackoverflow.com/questions/12737740/python-requests-and-persistent-sessions
+ 
+		self._session = requests.Session()
 		# Workaround for self signed certificates, need a better solution!
-		self.s.verify = False
-		
-		# Payload for login
-		login_payload = '[{"command":"system.login","user":"'+username+'","password":"'+password+'"}]'
-		resp = self.sendRequest(login_payload)
-		
-		# Adding the session ID to the session URL
-		self.sessionUrl += json.loads(resp.text)[0]["sid"]
+    # TODO: support selfe signed certificate
+		self._session.verify = False
+				
+    resp = self._send('[{"command":"system.login","user":"'+ self._username +'","password":"'+ self._password +'"}]', False)
+    
+		# Save the session ID
+		self._sessionID = json.loads(resp.text)[0]["sid"]
+    
 		return resp
   
   def _logout(self):
-		resp = json.loads(self.s.post(self.sessionUrl, data='[{"command":"system.logout"}]').text)[0]['status']
-		# If logout is ok close the session, i need a better solution for error handling in this case.
-		if resp == 'ok':
-			self.s.close()
-		return resp
+		resp = self._send('[{"command":"system.logout"}]', False)
+		
+    # If logout is ok close the session, i need a better solution for error handling in this case.
+		if json.loads(resp.text)[0]['status'] == 'ok':
+      self._sessionID = ''
+			self._session.close()
+		
+    return resp
   
-	def _send(self, payload):
-        # dict in JSON umwandeln
-        # dann der ganze http code
-        # return des JSON zur ausgabe oder verarbeitung
-		return
+  def _is_json(myjson):
+    try:
+      json_object = json.loads(myjson)
+    except ValueError as e:
+      return False
+    return True
+    
+	def _send(self, p, checkSession = True):
+    # TODO: Check if the session is already opened
+    if checkSession:
+      # First Workaround
+      if self._sessionID == "":
+        self._login()
+         
+    # check if payload is already a valid json
+    if self._is_json(p):
+      pyload = p
+      
+    # convert a list of dict into JSON
+    if isinstance(p, list):
+      payload = json.dumps(p)
+      
+    # return des the response
+		return self._session.post(self._sessionUrl + self._sessionID, data=payload)
 
   def _payloadSet(self, path, value)
     # Check if path already in the payload
@@ -142,7 +167,7 @@ class BellAPIWrapper():
       return
       
     payload = []
-    payload.append(self._payloadSet("Backlight.BkDayBrightness", value)) 
+    payload.append(self._payloadSet("BacklightBrightness", value)) 
     if not self._send(payload):
       return 1
     
