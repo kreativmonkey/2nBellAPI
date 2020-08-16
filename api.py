@@ -30,23 +30,26 @@ class BellAPIWrapper():
         self,
         password,
         host,
-        username = DEFAULT_USERNAME,
-        port=DEFAULT_PORT,
+        username  = DEFAULT_USERNAME,
+        port      = DEFAULT_PORT,
     ):
-    self._session = None
+      
+    self._session   = None
     
-    self._username = username
-		self._password = password
-		self._port = port
-		self._host = host
-    self._sessionID = ''
-		# Setting the session URL to the default
-		self._sessionUrl = 'https://' + host + '/ajax?sid='
+    self._username  = username
+		self._password  = password
+		self._port      = port
+		self._host      = host
+    self._payload   = []
     
+		# Setting the session URL and initialize sessionID
+		self._sessionUrl  = 'https://' + host + '/ajax?sid='
+    self._sessionID   = ''
+    
+    # Start the session by first Login
 		self._login()
     
-    self._payload = []
-	
+	''' Login and start the session '''
   def _login(self):
     # TODO: Caching Session: https://stackoverflow.com/questions/12737740/python-requests-and-persistent-sessions
  
@@ -62,6 +65,7 @@ class BellAPIWrapper():
     
 		return resp
   
+  ''' Logout and close the session '''
   def _logout(self):
 		resp = self._send('[{"command":"system.logout"}]', False)
 		
@@ -72,13 +76,15 @@ class BellAPIWrapper():
 		
     return resp
   
-  def _is_json(myjson):
+  ''' Validate if a string is a json '''
+  def _is_json(jsonstring):
     try:
-      json_object = json.loads(myjson)
+      json_object = json.loads(jsonstring)
     except ValueError as e:
       return False
     return True
     
+  ''' Sending requests to the 2N Bell and getting the response '''
 	def _send(self, p, checkSession = True):
     # TODO: Check if the session is already opened
     if checkSession:
@@ -97,6 +103,7 @@ class BellAPIWrapper():
     # return des the response
 		return self._session.post(self._sessionUrl + self._sessionID, data=payload)
 
+  ''' Create the payload to set values '''
   def _payloadSet(self, path, value)
     # Check if path already in the payload
     #if any(p['path'] == path for p in self._payload):
@@ -117,6 +124,7 @@ class BellAPIWrapper():
     
     return payload
     
+  ''' Create the payload to get states '''
   def _payloadGet(self, path)
     # Check if path already in the payload
     if any(p['path'] == path for p in self._payload):
@@ -126,7 +134,8 @@ class BellAPIWrapper():
     payload["path"] = STATE_TOPICS[path]
     
     return payload
-    
+  
+  ''' Generator to sending more than one request '''
   def addPayload(self, path, command="db.get", value = None):
     # Check if the command is supported
     if not command == "db.set" or not command == "db.get":
@@ -151,7 +160,8 @@ class BellAPIWrapper():
       payload = self._payloadSet(path, value)
   
     self._payload.append(payload)
-      
+  
+  ''' Send the generated payload '''
   def sendPayloads(self):
     if not self._send(payload):
       return 1
@@ -161,6 +171,7 @@ class BellAPIWrapper():
           
     return 0
     
+  ''' Set the brightness of the key light '''
   def setBrightness(self, value):
     # Check the correct value
 		if not value >= 0 and not value <= 100:
@@ -173,6 +184,7 @@ class BellAPIWrapper():
     
     return 0
       
+  ''' Get states of the 2N Bell '''
   def getState(self):
     payload = []
     for state in STATE_TOPICS:
